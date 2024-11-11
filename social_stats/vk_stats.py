@@ -1,5 +1,6 @@
 import requests
 import datetime
+import json
 
 class VKStats:
     def __init__(self, vk_api_key, group_id):
@@ -42,3 +43,15 @@ class VKStats:
             raise Exception(response['error']['error_msg'])
         else:
             return response['response']['count']
+
+        def print_stats(self, stats):
+            print("Статистика группы:")
+            for key, value in stats.items():
+                print(f"{key}: {value}")
+
+        def save_stats_to_json(self, stats, filename):
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(stats, f, ensure_ascii=False, indent=4)
+
+
+

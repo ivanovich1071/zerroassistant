@@ -2,11 +2,12 @@ import requests
 from config import vk_api_key, vk_group_id
 
 class VKPublisher:
-    def __init__(self):
+    def __init__(self, vk_api_key=vk_api_key, vk_group_id=vk_group_id):
         self.vk_api_key = vk_api_key
         self.group_id = vk_group_id
 
     def upload_photo(self, image_url):
+        # Получение URL для загрузки изображения
         upload_url_response = requests.get(
             'https://api.vk.com/method/photos.getWallUploadServer',
             params={

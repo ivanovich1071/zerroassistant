@@ -57,14 +57,13 @@ def post_generator():
             image_url = image_gen.generate_image(image_prompt)
 
         if auto_post:
-            vk_publisher = VKPublisher(user.vk_api_id, user.vk_group_id)
+            vk_publisher = VKPublisher()  # Создаем экземпляр без передачи аргументов
             vk_publisher.publish_post(post_content, image_url)
             flash('Post published to VK successfully!', 'success')
 
         return render_template('post_generator.html', post_content=post_content, image_url=image_url)
 
     return render_template('post_generator.html')
-
 
 @smm_bp.route('/vk-stats', methods=['GET'])
 def vk_stats():

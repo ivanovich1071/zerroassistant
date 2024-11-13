@@ -1,7 +1,6 @@
 import requests
 from config import vk_api_key, vk_group_id
 
-
 class VKPublisher:
     def __init__(self):
         self.vk_api_key = vk_api_key
@@ -61,8 +60,8 @@ class VKPublisher:
         response = requests.post('https://api.vk.com/method/wall.post', params=params).json()
 
         if 'error' in response:
-            print(f"Ошибка отправки поста: {response['error']['error_msg']}")
+            raise Exception(response['error']['error_msg'])
         else:
-            print(f"Пост успешно отправлен. ID поста: {response['response']['post_id']}")
-
-        return response
+            post_id = response['response']['post_id']
+            print(f"Пост успешно опубликован. ID поста: {post_id}")
+            return post_id

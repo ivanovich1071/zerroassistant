@@ -44,14 +44,39 @@ class VKStats:
         else:
             return response['response']['count']
 
-        def print_stats(self, stats):
-            print("Статистика группы:")
-            for key, value in stats.items():
-                print(f"{key}: {value}")
+    def get_post_stats(self, post_id):
+        url = 'https://api.vk.com/method/wall.getById'
+        params = {
+            'access_token': self.vk_api_key,
+            'v': '5.236',
+            'posts': f"-{self.group_id}_{post_id}"
+        }
+        response = requests.get(url, params=params).json()
 
-        def save_stats_to_json(self, stats, filename):
-            with open(filename, 'w', encoding='utf-8') as f:
-                json.dump(stats, f, ensure_ascii=False, indent=4)
+        # Отладочный вывод для проверки структуры
+        print("Ответ от API ВКонтакте на запрос wall.getById:", response)
 
+        if 'error' in response:
+            raise Exception(f"Ошибка получения статистики поста: {response['error']['error_msg']}")
 
+        # Проверка, что 'items' присутствует в ответе
+        if 'response' in response and 'items' in response['response']:
+            post_data = response['response']['items'][0]  # Доступ к первому элементу в 'items'
+            stats = {
+                'likes': post_data['likes']['count'],
+                'views': post_data['views']['count'] if 'views' in post_data else 0,
+                'reposts': post_data['reposts']['count'],
+                'comments': post_data['comments']['count']
+            }
+            return stats
+        else:
+            raise Exception("Не удалось получить данные для указанного поста: неверная структура ответа.")
 
+    def print_stats(self, stats):
+        print("Статистика публикации:")
+        for key, value in stats.items():
+            print(f"{key.capitalize()}: {value}")
+
+    def save_stats_to_json(self, stats, filename):
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(stats, f, ensure_ascii=False, indent=4)

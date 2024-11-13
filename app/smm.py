@@ -18,20 +18,23 @@ def dashboard():
     return render_template('dashboard.html')
 
 
+# Маршрут для страницы настроек, где пользователь может ввести vk_api_id и vk_group_id
 @smm_bp.route('/settings', methods=['GET', 'POST'])
 def settings():
     if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('auth.login'))  # Перенаправление на страницу входа, если пользователь не авторизован
 
-    user = User.query.get(session['user_id'])
+    user = User.query.get(session['user_id'])  # Получаем текущего пользователя из базы данных
 
     if request.method == 'POST':
+        # Сохраняем введенные пользователем vk_api_id и vk_group_id
         user.vk_api_id = request.form['vk_api_id']
         user.vk_group_id = request.form['vk_group_id']
-        db.session.commit()
-        flash('Settings saved!', 'success')
+        db.session.commit()  # Сохраняем изменения в базе данных
+        flash('Настройки сохранены!', 'success')  # Уведомляем пользователя о сохранении настроек
 
-    return render_template('settings.html', user=user)
+    return render_template('settings.html', user=user)  # Отображаем страницу настроек
+
 
 
 @smm_bp.route('/post-generator', methods=['GET', 'POST'])
@@ -65,21 +68,34 @@ def post_generator():
 
     return render_template('post_generator.html')
 
+
+# Маршрут для страницы статистики ВКонтакте
 @smm_bp.route('/vk-stats', methods=['GET'])
 def vk_stats():
     if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('auth.login'))  # Перенаправление на вход, если пользователь не авторизован
 
-    user = User.query.get(session['user_id'])
+    user = User.query.get(session['user_id'])  # Получаем текущего пользователя из базы данных
 
+    # Проверка на наличие vk_api_id и vk_group_id у пользователя
+    if not user.vk_api_id or not user.vk_group_id:
+        flash("VK API ID и Group ID необходимы для получения статистики.", "warning")
+        return redirect(url_for('smm.settings'))  # Перенаправляем пользователя на страницу настроек
+
+    # Создаем экземпляр класса VKStats для получения статистики
     vk_stats = VKStats(user.vk_api_id, user.vk_group_id)
-    followers_count = vk_stats.get_followers()
+    try:
+        followers_count = vk_stats.get_followers()  # Запрос на получение количества подписчиков в ВКонтакте
+    except Exception as e:
+        flash(f"Ошибка при получении статистики VK: {e}", "danger")
+        followers_count = "Ошибка"  # Отображение ошибки в случае неудачи
 
+    # Формируем словарь со статистикой для отображения на странице
     stats = {
-        "Followers": followers_count,
-        "Likes": "N/A",
-        "Comments": "N/A",
-        "Shares": "N/A"
+        "Подписчики": followers_count,
+        "Лайки": "N/A",
+        "Комментарии": "N/A",
+        "Репосты": "N/A"
     }
 
-    return render_template('vk_stats.html', stats=stats)
+    return render_template('vk_stats.html', stats=stats)  # Отображаем страницу vk_stats.html с данными

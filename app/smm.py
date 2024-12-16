@@ -6,7 +6,9 @@ from generators.image_gen import ImageGenerator
 from social_publishers.vk_publisher import VKPublisher
 from social_stats.vk_stats import VKStats
 from config import openai_key
-
+from social_publishers.tg_publisher import TGPublisher
+from config import telegram_bot_token, telegram_channel_id
+import asyncio
 
 smm_bp = Blueprint('smm', __name__)
 
@@ -47,6 +49,7 @@ def post_generator():
         topic = request.form['topic']
         generate_image = 'generate_image' in request.form
         auto_post = 'auto_post' in request.form
+        tg_post = 'tg_post' in request.form  # Новый флаг для публикации в Telegram
 
         user = User.query.get(session['user_id'])
 
@@ -59,16 +62,21 @@ def post_generator():
             image_prompt = post_gen.generate_post_image_description()
             image_url = image_gen.generate_image(image_prompt)
 
+        # Публикация в VK
         if auto_post:
             vk_publisher = VKPublisher()  # Создаем экземпляр без передачи аргументов
             vk_publisher.publish_post(post_content, image_url)
             flash('Post published to VK successfully!', 'success')
 
+        # Публикация в Telegram
+        if tg_post:
+            tg_publisher = TGPublisher(telegram_bot_token, telegram_channel_id)
+            asyncio.run(tg_publisher.publish_post(post_content, image_url))
+            flash('Post published to Telegram successfully!', 'success')
+
         return render_template('post_generator.html', post_content=post_content, image_url=image_url)
 
     return render_template('post_generator.html')
-
-
 # Маршрут для страницы статистики ВКонтакте
 @smm_bp.route('/vk-stats', methods=['GET'])
 def vk_stats():

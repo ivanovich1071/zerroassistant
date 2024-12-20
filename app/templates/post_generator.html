@@ -34,6 +34,7 @@
 
 {% if image_url %}
 <h2 class="text-center mt-4">Generated Image</h2>
-<img src="{{ image_url }}" alt="Generated Image" width="300px" class="img-fluid mx-auto d-block">
+<img src="{{ image_url }}" alt="Generated Image" class="img-fluid mx-auto d-block">
+<p class="text-center mt-2">Наложенный заголовок: "{{ post_content.split('.')[0] }}"</p>
 {% endif %}
 {% endblock %}

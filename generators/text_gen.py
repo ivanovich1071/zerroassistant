@@ -11,7 +11,7 @@ class PostGenerator:
           model="gpt-4o",
           messages=[
             {"role": "system", "content": "Ты высококвалифицированный SMM специалист, который будет помогать в генерации текста для постов с заданной теме тематикой и заданным тоном."},
-            {"role": "user", "content": f"Сгенерируй пост для соцсетей с темой {self.topic}, используя тон: {self.tone}"}
+            {"role": "user", "content": f"Сгенерируй пост для соцсетей с темой {self.topic}, используя тон: {self.tone}, заголовок поста выдели **"}
           ]
         )
         return response.choices[0].message.content

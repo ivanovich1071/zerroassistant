@@ -62,12 +62,6 @@ def post_generator():
             image_prompt = post_gen.generate_post_image_description()
             image_url = image_gen.generate_image(image_prompt)
 
-        # Публикация в VK
-        if auto_post:
-            vk_publisher = VKPublisher()  # Создаем экземпляр без передачи аргументов
-            vk_publisher.publish_post(post_content, image_url)
-            flash('Post published to VK successfully!', 'success')
-
         # Публикация в Telegram
         if tg_post:
             tg_publisher = TGPublisher(telegram_bot_token, telegram_channel_id)

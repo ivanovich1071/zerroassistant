@@ -3,22 +3,23 @@ from app.models import User
 from app import db
 from generators.text_gen import PostGenerator
 from generators.image_gen import ImageGenerator
+from generators.image_text_overlay import ImageTextOverlay
 from social_publishers.vk_publisher import VKPublisher
-from social_stats.vk_stats import VKStats
-from config import openai_key
 from social_publishers.tg_publisher import TGPublisher
-from config import telegram_bot_token, telegram_channel_id
+from social_stats.vk_stats import VKStats
+from config import openai_key, telegram_bot_token, telegram_channel_id
 import asyncio
+import re
+import os
+import logging
 
 smm_bp = Blueprint('smm', __name__)
-
 
 @smm_bp.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
     return render_template('dashboard.html')
-
 
 # Маршрут для страницы настроек, где пользователь может ввести vk_api_id и vk_group_id
 @smm_bp.route('/settings', methods=['GET', 'POST'])
@@ -37,8 +38,6 @@ def settings():
 
     return render_template('settings.html', user=user)  # Отображаем страницу настроек
 
-
-
 @smm_bp.route('/post-generator', methods=['GET', 'POST'])
 def post_generator():
     if 'user_id' not in session:
@@ -49,12 +48,16 @@ def post_generator():
         topic = request.form['topic']
         generate_image = 'generate_image' in request.form
         auto_post = 'auto_post' in request.form
-        tg_post = 'tg_post' in request.form  # Новый флаг для публикации в Telegram
+        tg_post = 'tg_post' in request.form
 
         user = User.query.get(session['user_id'])
 
         post_gen = PostGenerator(openai_key, tone, topic)
         post_content = post_gen.generate_post()
+
+        # Извлечение заголовка из текста поста
+        match = re.search(r'\*(.+?)\*', post_content)
+        title = match.group(1)[:120] if match else "Default Title"
 
         image_url = None
         if generate_image:
@@ -62,15 +65,38 @@ def post_generator():
             image_prompt = post_gen.generate_post_image_description()
             image_url = image_gen.generate_image(image_prompt)
 
-        # Публикация в Telegram
+            if image_url:
+                logging.info(f"Generated image URL: {image_url}")
+                tg_publisher = TGPublisher(telegram_bot_token, telegram_channel_id)
+                asyncio.run(tg_publisher.download_image(image_url))
+
+                if os.path.exists("downloaded_image.jpg"):
+                    overlay = ImageTextOverlay()
+                    overlay.add_text_to_image(
+                        image_path="downloaded_image.jpg",
+                        text=title,
+                        output_path="output_image.jpg"
+                    )
+                else:
+                    logging.error("Downloaded image not found.")
+                    raise FileNotFoundError("Downloaded image not found.")
+            else:
+                logging.error("Image URL generation failed.")
+                raise ValueError("Image URL not generated.")
+
         if tg_post:
-            tg_publisher = TGPublisher(telegram_bot_token, telegram_channel_id)
-            asyncio.run(tg_publisher.publish_post(post_content, image_url))
-            flash('Post published to Telegram successfully!', 'success')
+            trimmed_content = post_content[:4096]  # Ограничение длины текста для Telegram
+            if os.path.exists("output_image.jpg"):
+                asyncio.run(tg_publisher.publish_post(trimmed_content, "output_image.jpg"))
+                flash('Post published to Telegram successfully!', 'success')
+            else:
+                logging.error("Output image not found for Telegram post.")
+                raise FileNotFoundError("Output image not found.")
 
         return render_template('post_generator.html', post_content=post_content, image_url=image_url)
 
     return render_template('post_generator.html')
+
 # Маршрут для страницы статистики ВКонтакте
 @smm_bp.route('/vk-stats', methods=['GET'])
 def vk_stats():
